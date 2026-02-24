@@ -1,0 +1,13 @@
+# Default to LF for all text files
+* text=auto eol=lf
+
+# Ensure HLS files stay LF
+*.m3u8 text eol=lf
+*.ts binary
+
+# Keep JSON, JS, TS consistent
+*.js text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.css text eol=lf
