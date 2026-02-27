@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 type ServiceCTA = { label: string; href: string };
 
@@ -9,7 +10,7 @@ type Service = {
   id: string;
   label: string; // tab label
   title: string; // modal title
-  summary: string;
+  summary: ReactNode;
   body: string;
   bullets: string[];
   ctas?: ServiceCTA[];
