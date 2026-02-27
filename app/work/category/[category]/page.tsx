@@ -1,94 +1,154 @@
-import Header from "../../../../components/Header";
-import ShakaVideo from "../../../../components/ShakaVideo";
-import { projects, DEFAULT_HLS, type CategorySlug } from "../../../data/projects";
-import { notFound } from "next/navigation";
+"use client";
 
-const CATEGORY_TITLES: Record<CategorySlug, string> = {
-  "ott-dubbing": "OTT / Movie Dubbing",
-  "ad-campaigns": "Ad Campaigns",
-  "audio-post": "Audio Post Production",
-  "ai-integration": "AI Integration",
-  accessibility: "Accessibility Assets",
-  compliance: "Censor & Compliance",
-  syndication: "Syndication",
+import React from "react";
+import Header from "@/components/Header";
+import ShakaVideo from "@/components/ShakaVideo";
+
+import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase.client";
+
+type ProjectRow = {
+  id: string;
+  title?: string;
+  slug?: string;
+  categorySlug?: string;
+  serviceSlug?: string;
+  status?: "draft" | "published" | string;
+  order?: number;
+  hlsPath?: string; // e.g. "projects/my-slug/master.m3u8"
 };
 
-export default function WorkCategoryPage({ params }: { params: { category: string } }) {
-  const slug = params.category as CategorySlug;
-  const title = CATEGORY_TITLES[slug];
-  if (!title) return notFound();
+function hlsPathToPlayableUrl(bucket: string, path: string) {
+  // IMPORTANT: This URL style supports relative refs inside m3u8 (0.m3u8, hi_000.ts, etc.)
+  return `https://storage.googleapis.com/${bucket}/${path}`;
+}
 
-  const items = projects.filter((p) => p.categorySlug === slug);
+export default function CategoryPage({
+  params,
+}: {
+  params: Promise<{ category: string }>;
+}) {
+  const { category: categorySlug } = React.use(params);
+
+  const [projects, setProjects] = React.useState<ProjectRow[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [err, setErr] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setErr(null);
+
+      // NOTE: This requires a Firestore composite index once:
+      // categorySlug ==, status in, orderBy order asc
+      const q = query(
+        collection(db, "projects"),
+        where("categorySlug", "==", categorySlug),
+        where("status", "in", ["published", "draft"]),
+        orderBy("order", "asc")
+      );
+
+      const snap = await getDocs(q);
+      const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as ProjectRow[];
+
+      setProjects(list);
+      setLoading(false);
+    };
+
+    load().catch((e: any) => {
+      setErr(e?.message ?? "Failed to load projects");
+      setLoading(false);
+    });
+  }, [categorySlug]);
+
+  // Your bucket from `gcloud storage buckets list`:
+  // gs://stonemediawebsite.firebasestorage.app/
+  const bucket = "stonemediawebsite-hls-public-849564114573";
 
   return (
-    <main className="min-h-screen bg-[#0D0D0D] text-[#F5F5F5]">
+    <>
       <Header />
 
-      <section className="pt-28 pb-20">
-        <div className="mx-auto w-full max-w-6xl px-6">
-          <a
-            href="/#top"
-            className="text-xs uppercase tracking-[0.22em] text-[#A0A0A0] hover:text-[#F5F5F5]"
-          >
-            ← Back to Home
-          </a>
+      <main className="min-h-screen bg-[#0D0D0D] text-[#F5F5F5]">
+        <section className="pt-28 pb-20">
+          <div className="mx-auto w-full max-w-6xl px-6">
+            <a
+              href="/#top"
+              className="text-xs uppercase tracking-[0.25em] text-white/60 hover:text-white"
+            >
+              ← Back
+            </a>
 
-          <div className="mt-8">
-            <p className="text-xs uppercase tracking-[0.22em] text-[#A0A0A0]">
-              Work · {title}
-            </p>
-            <h1 className="mt-3 text-3xl md:text-5xl uppercase tracking-[0.14em]">
-              {title}
+            <h1 className="mt-6 text-3xl font-semibold">
+              {categorySlug.replace(/-/g, " ")}
             </h1>
-            <p className="mt-5 max-w-2xl text-sm md:text-base text-[#A0A0A0]">
-              Category-specific showcases with multilingual playback.
-            </p>
-          </div>
 
-          <div className="mt-12 grid gap-8">
-            {items.slice(0, 15).map((p) => {
-              const src = p.hlsSrc ?? DEFAULT_HLS;
-
-              return (
-                <div key={p.slug} className="border border-[#1A1A1A] bg-[#0A0A0A]">
-                  <div className="p-6 border-b border-[#1A1A1A]">
-                    <p className="text-xs uppercase tracking-[0.22em] text-[#A0A0A0]">
-                      {p.category} · {p.year}
-                    </p>
-
-                    <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                      <h3 className="text-xl md:text-2xl uppercase tracking-[0.14em]">
-                        {p.title}
-                      </h3>
-
-                      <a
-                        href={`/work/${p.slug}`}
-                        className="text-xs uppercase tracking-[0.22em] text-[#A0A0A0] hover:text-[#F5F5F5]"
-                      >
-                        Open project →
-                      </a>
-                    </div>
-
-                    <p className="mt-3 max-w-3xl text-sm md:text-base text-[#A0A0A0]">
-                      {p.meta}
-                    </p>
-                  </div>
-
-                  <div className="p-6">
-                    <ShakaVideo src={src} />
-                  </div>
+            <div className="mt-10 grid gap-10">
+              {loading && (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-white/70">
+                  Loading…
                 </div>
-              );
-            })}
-          </div>
+              )}
 
-          {items.length === 0 && (
-            <p className="mt-10 text-sm text-[#A0A0A0]">
-              No projects found for this category yet.
-            </p>
-          )}
-        </div>
-      </section>
-    </main>
+              {!loading && err && (
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-red-200">
+                  {err}
+                </div>
+              )}
+
+              {!loading && !err && projects.length === 0 && (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-white/70">
+                  No projects yet in this category.
+                </div>
+              )}
+
+              {!loading &&
+                !err &&
+                projects.map((p) => {
+                  const title = p.title ?? p.slug ?? "Untitled";
+                  const hlsUrl = p.hlsPath ? hlsPathToPlayableUrl(bucket, p.hlsPath) : null;
+                  console.log("PROJECT:", p.slug);
+                  console.log("HLS PATH FROM FIRESTORE:", p.hlsPath);
+                  console.log("FINAL HLS URL:", hlsUrl);
+
+                  return (
+                    <section
+                      key={p.id}
+                      className="rounded-2xl border border-white/10 bg-white/5 p-6"
+                    >
+                      <div className="flex flex-col gap-2 md:flex-row md:items-baseline md:justify-between">
+                        <div>
+                          <div className="text-xs uppercase tracking-[0.25em] text-white/55">
+                            {(p.serviceSlug ?? "service")} · {(p.status ?? "status")}
+                          </div>
+                          <h2 className="mt-2 text-xl font-semibold">{title}</h2>
+                          {p.slug ? (
+                            <p className="mt-1 text-sm text-white/60">{p.slug}</p>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="mt-5">
+                        {hlsUrl ? (
+                          <>
+                            <ShakaVideo src={hlsUrl} />
+                            <div className="mt-2 text-[11px] text-white/40 break-all">
+                              Source: {hlsUrl}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/70">
+                            HLS not built yet.
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  );
+                })}
+            </div>
+          </div>
+        </section>
+      </main>
+    </>
   );
 }

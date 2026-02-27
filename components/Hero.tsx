@@ -58,9 +58,15 @@ const SERVICES: Service[] = [
       "Animation & children’s programming",
     ],
     ctas: [
-      { label: "View OTT / Movie Dubbing", href: "/work/category/ott-dubbing" },
-      { label: "View Ad Campaign Work", href: "/work/category/ad-campaigns" },
-    ],
+  {
+    label: "View OTT / Movie Dubbing",
+    href: "/work/category/ott-dubbing",
+  },
+  {
+    label: "View Ad Campaign Work",
+    href: "/work/category/ad-campaigns",
+  },
+],
   },
   {
     id: "audio-post",
@@ -76,7 +82,12 @@ const SERVICES: Service[] = [
       "Loudness + spec compliance",
       "QC passes + versioning",
     ],
-    ctas: [{ label: "View Work", href: "/work/category/audio-post" }],
+    ctas: [
+  {
+    label: "View Work",
+    href: "/work/category/audio-post",
+  },
+],
   },
   {
     id: "ai-integration",
@@ -92,7 +103,12 @@ const SERVICES: Service[] = [
       "Automation for versioning",
       "Future-ready pipeline planning",
     ],
-    ctas: [{ label: "View Work", href: "/work/category/ai-integration" }],
+    ctas: [
+  {
+    label: "View Work",
+    href: "/work/category/ai-integration",
+  },
+],
   },
   {
     id: "accessibility",
@@ -108,7 +124,12 @@ const SERVICES: Service[] = [
       "Subtitle timing + reading comfort",
       "QC + platform compliance",
     ],
-    ctas: [{ label: "View Work", href: "/work/category/accessibility" }],
+    ctas: [
+  {
+    label: "View Work",
+    href: "/work/category/accessibility",
+  },
+],
   },
   {
     id: "compliance",
@@ -124,7 +145,12 @@ const SERVICES: Service[] = [
       "Versioning + documentation discipline",
       "Delivery readiness guidance",
     ],
-    ctas: [{ label: "View Work", href: "/work/category/compliance" }],
+    ctas: [
+  {
+    label: "View Work",
+    href: "/work/category/compliance",
+  },
+],
   },
   {
     id: "syndication",
@@ -140,7 +166,12 @@ const SERVICES: Service[] = [
       "Platform-ready masters",
       "Repeatable delivery workflow",
     ],
-    ctas: [{ label: "View Work", href: "/work/category/syndication" }],
+    ctas: [
+  {
+    label: "View Work",
+    href: "/work/category/syndication",
+  },
+],
   },
 ];
 
