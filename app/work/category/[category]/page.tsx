@@ -20,7 +20,7 @@ type ProjectRow = {
 
 function hlsPathToPlayableUrl(bucket: string, path: string) {
   // IMPORTANT: This URL style supports relative refs inside m3u8 (0.m3u8, hi_000.ts, etc.)
-  return `https://storage.googleapis.com/${bucket}/${path}`;
+  return `https://${bucket}.storage.googleapis.com/${path}`;
 }
 
 export default function CategoryPage({
