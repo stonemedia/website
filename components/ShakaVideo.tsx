@@ -224,7 +224,7 @@ export default function ShakaVideo({ src, className }: Props) {
               ))}
           </div>
 
-          <p className="mt-3 text-xs text-[#A0A0A0] break-all">Source: {src}</p>
+          
         </div>
       </div>
     </div>

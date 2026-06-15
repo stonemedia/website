@@ -1,51 +1,71 @@
+import ShakaVideo from "@/components/ShakaVideo";
 export default function About() {
   return (
-    <section className="bg-[#030509]">
-      <div className="mx-auto w-full max-w-6xl px-6 py-16">
-        <div className="grid gap-10 md:grid-cols-2 md:items-center">
+    <section className="relative bg-[#030509]">
+      <div className="mx-auto w-full max-w-6xl px-6 py-20 md:py-28">
+        <div className="grid gap-14 md:grid-cols-2 md:items-center">
+          
+          {/* Left Content */}
           <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-[#A0A0A0]">
-              About
-            </p>
+            <h1 className="text-base md:text-lg uppercase tracking-[0.28em] text-white/50">
+  		About
+	    </h1>
 
-            <h2 className="mt-4 text-3xl md:text-4xl uppercase tracking-[0.14em]">
-              Built for scale, tuned for craft.
+            <h2 className="mt-5 text-2xl md:text-4xl font-light uppercase tracking-[0.12em] leading-tight">
+              Building for scale. <br className="hidden md:block" />
+              Tuning for craft.
             </h2>
 
-            <p className="mt-5 text-sm md:text-base text-[#A0A0A0] leading-relaxed">
-              Stone Media combines human performance with modern pipelines —
-              from creative adaptation to QC to delivery specs. We don’t just
-              localize content. We engineer it for markets.
+            <p className="mt-6 max-w-lg text-sm md:text-base text-white/60 leading-relaxed">
+              Stone Media is a modern media ecosystem built to support multilingual storytelling across platforms, markets, and evolving technologies.
+
+Our work spans performance, localization, audio restoration, accessibility, certification, and distribution — connected through structured workflows and production-grade infrastructure.
+
+We operate at the intersection of craft and systems. Creative at heart, but engineered for scale, we design processes that allow stories to move efficiently across languages and screens.
+
+As media continues to evolve, so do we — integrating technology, building smarter workflows, and developing tools that support the next generation of content delivery.
+
+Stone Media isn’t just a studio.
+It’s a framework for how stories travel today — and tomorrow.
+              {/* <span className="text-white/80"> We engineer it for markets.</span> */}
             </p>
 
-            <div className="mt-8 grid gap-3">
-              <div className="border border-[#1A1A1A] bg-[#0A0A0A] p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-[#A0A0A0]">
+            {/* Info Blocks */}
+            <div className="mt-10 grid gap-4">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-all duration-300 hover:bg-white/[0.05]">
+                <p className="text-xs uppercase tracking-[0.25em] text-white/40">
                   What we optimize for
                 </p>
-                <p className="mt-2 text-sm text-[#A0A0A0]">
-                  Consistency · Sync · QC discipline · Platform readiness
+                <p className="mt-3 text-sm text-white/60">
+                  Consistency · Sync accuracy · QC discipline · Platform readiness
                 </p>
               </div>
 
-              <div className="border border-[#1A1A1A] bg-[#0A0A0A] p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-[#A0A0A0]">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-all duration-300 hover:bg-white/[0.05]">
+                <p className="text-xs uppercase tracking-[0.25em] text-white/40">
                   Why it matters
                 </p>
-                <p className="mt-2 text-sm text-[#A0A0A0]">
-                  Faster iterations, fewer rejections, and premium viewer experience.
+                <p className="mt-3 text-sm text-white/60">
+                  Faster iterations, fewer rejections, scalable delivery, and
+                  a premium viewer experience across platforms.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Showreel placeholder box - replace with your Shaka showreel later */}
-          <div className="border border-[#1A1A1A] bg-[#0A0A0A] p-4">
-            <div className="aspect-video w-full bg-black/40" />
-            <p className="mt-3 text-xs uppercase tracking-[0.22em] text-[#A0A0A0]">
-              General Showreel
-            </p>
+          {/* Showreel */}
+          <div className="relative">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-sm">
+              <ShakaVideo src="https://stonemediawebsite-hls-public-849564114573.storage.googleapis.com/projects/showreel/master.m3u8" />
+              <p className="mt-4 text-xs uppercase tracking-[0.25em] text-white/40">
+                General Showreel
+              </p>
+            </div>
+
+            {/* subtle glow */}
+            <div className="pointer-events-none absolute -inset-6 bg-gradient-to-tr from-red-500/10 via-transparent to-transparent blur-3xl" />
           </div>
+
         </div>
       </div>
     </section>
