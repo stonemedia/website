@@ -2,7 +2,7 @@ import ShakaVideo from "@/components/ShakaVideo";
 export default function About() {
   return (
     <section className="relative bg-[#030509]">
-      <div className="mx-auto w-full max-w-6xl px-6 py-20 md:py-28">
+      <div className="mx-auto w-full max-w-6xl px-6 py-10 md:py-14">
         <div className="grid gap-14 md:grid-cols-2 md:items-center">
           
           {/* Left Content */}
@@ -34,20 +34,19 @@ It’s a framework for how stories travel today — and tomorrow.
             <div className="mt-10 grid gap-4">
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-all duration-300 hover:bg-white/[0.05]">
                 <p className="text-xs uppercase tracking-[0.25em] text-white/40">
-                  What we optimize for
+                  Built for complex localization
                 </p>
                 <p className="mt-3 text-sm text-white/60">
-                  Consistency · Sync accuracy · QC discipline · Platform readiness
+                  From adaptation and dubbing to audio finishing and final delivery, our workflows are designed to support high-volume content without compromising creative quality.
                 </p>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-all duration-300 hover:bg-white/[0.05]">
                 <p className="text-xs uppercase tracking-[0.25em] text-white/40">
-                  Why it matters
+                  Why clients return
                 </p>
                 <p className="mt-3 text-sm text-white/60">
-                  Faster iterations, fewer rejections, scalable delivery, and
-                  a premium viewer experience across platforms.
+                  Experienced teams, dependable delivery, consistent quality, and the flexibility to scale from single titles to large-volume localization programs.
                 </p>
               </div>
             </div>

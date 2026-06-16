@@ -48,7 +48,7 @@ export default function Contact() {
               Share your project scope, languages, and timeline. We’ll respond with a structured next step.
             </p>
 
-            <div className="mt-10 space-y-4 text-sm md:text-base">
+            <div className="mt-10 space-y-4 text-xs md:text-sm">
               <div className="flex items-center justify-between gap-6 border-b border-[#1A1A1A] py-3">
                 <span className="uppercase tracking-[0.18em] text-[#A0A0A0]">Email</span>
                 <a className="hover:text-[#F5F5F5]" href="mailto:info@stonemedia.in">
