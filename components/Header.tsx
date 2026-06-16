@@ -15,7 +15,7 @@ export default function Header({
               : "border border-[#1A1A1A] bg-[#0D0D0D]/60"
           }`}
         >
-          <a href="#top" className="flex items-center">
+          <a href="/" className="flex items-center" aria-label="Go to Stone Media homepage">
             <Image
 		src={
 		  theme === "light"
