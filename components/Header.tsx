@@ -16,18 +16,18 @@ export default function Header({
           }`}
         >
           <a href="/" className="flex items-center" aria-label="Go to Stone Media homepage">
-            <Image
-		src={
-		  theme === "light"
-		    ? "/brand/sm_logo_black_font.png"
-		    : "/brand/sm_logo_white_font.png"
-		}
-
-  		alt="Stone Media"
-		width={190}
-		height={43}
-		priority
-	     />
+          <Image
+  src={
+    theme === "light"
+      ? "/brand/stonemedia-logo-dark.png"
+      : "/brand/stonemedia-logo-light.png"
+  }
+  alt="Stone Media"
+  width={180}
+  height={41}
+  className="h-auto w-[162px] md:w-[180px]"
+  priority
+/>
           </a>
 
           <nav className="hidden items-center gap-7 text-xs uppercase tracking-[0.2em] md:flex" />
