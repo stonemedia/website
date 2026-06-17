@@ -19,8 +19,8 @@ export default function Header({
           <Image
   src={
     theme === "light"
-      ? "/brand/stonemedia-logo-dark.png"
-      : "/brand/stonemedia-logo-light.png"
+      ? "/brand/sm_logo_black_font.png"
+      : "/brand/sm_logo_white_font.png"
   }
   alt="Stone Media"
   width={180}
