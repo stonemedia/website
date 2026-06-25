@@ -23,6 +23,25 @@ type AudioRow = {
   progress: number;
 };
 
+const LANGUAGE_OPTIONS = [
+  { code: "hi", name: "Hindi" },
+  { code: "en", name: "English" },
+  { code: "bn", name: "Bengali" },
+  { code: "ta", name: "Tamil" },
+  { code: "te", name: "Telugu" },
+  { code: "kn", name: "Kannada" },
+  { code: "ml", name: "Malayalam" },
+  { code: "mr", name: "Marathi" },
+  { code: "gu", name: "Gujarati" },
+  { code: "pa", name: "Punjabi" },
+  { code: "or", name: "Odia" },
+  { code: "as", name: "Assamese" },
+];
+
+function cleanLangCode(value: string) {
+  return value.toLowerCase().trim().replace(/\s+/g, "-");
+}
+
 export default function EditProjectPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
@@ -225,9 +244,13 @@ useEffect(() => {
     setAudioRows((prev) => prev.filter((r) => r.id !== rowId));
   };
 
-  const setAudioLang = (rowId: string, lang: string) => {
-    setAudioRows((prev) => prev.map((r) => (r.id === rowId ? { ...r, lang } : r)));
-  };
+const setAudioLang = (rowId: string, lang: string) => {
+  setAudioRows((prev) =>
+    prev.map((r) =>
+      r.id === rowId ? { ...r, lang: cleanLangCode(lang) } : r
+    )
+  );
+};
 
   const setAudioFile = (rowId: string, file: File | null) => {
     setAudioRows((prev) =>
@@ -542,22 +565,28 @@ const onBuildHls = async () => {
                   <div className="grid gap-2 md:grid-cols-3 md:items-center">
                     <div>
                       <div className="text-xs text-white/60 mb-1">Language</div>
-                      <select
-                        value={r.lang}
-                        onChange={(e) => setAudioLang(r.id, e.target.value)}
-                        className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm"
-                      >
-                        <option value="hi">hi (Hindi)</option>
-                        <option value="bn">bn (Bengali)</option>
-                        <option value="ta">ta (Tamil)</option>
-                        <option value="en">en (English)</option>
-                        <option value="te">te (Telugu)</option>
-                        <option value="mr">mr (Marathi)</option>
-                        <option value="gu">gu (Gujarati)</option>
-                        <option value="kn">kn (Kannada)</option>
-                        <option value="ml">ml (Malayalam)</option>
-                        <option value="pa">pa (Punjabi)</option>
-                      </select>
+                      <input
+			list={`language-options-${r.id}`}
+  			value={r.lang}
+  			onChange={(e) => setAudioLang(r.id, e.target.value)}
+  			placeholder="hi"
+  			className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm"
+		      />
+
+		      <datalist id={`language-options-${r.id}`}>
+  			{LANGUAGE_OPTIONS.map((language) => (
+    			  <option
+      			    key={language.code}
+      			    value={language.code}
+      			    label={language.name}
+    			  />
+  			))}
+		      </datalist>
+
+		      <div className="mt-1 text-[11px] text-white/45">
+  			Use language code. Example: hi, en, bn, ta, te, kn, ml, mr, gu, pa, or, as.
+  			For custom languages, type your own code.
+		      </div>
                     </div>
 
                     <div className="md:col-span-2">

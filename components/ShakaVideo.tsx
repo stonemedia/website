@@ -3,15 +3,81 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type Props = {
-  src: string; // HLS master.m3u8 (multi-audio) or DASH manifest
+  src: string;
   className?: string;
 };
 
-type AudioOption = { language: string; label: string };
+type AudioOption = {
+  language: string;
+  label: string;
+};
+
+const LANGUAGE_ORDER = [
+  "hi",
+  "en",
+  "bn",
+  "ta",
+  "te",
+  "kn",
+  "ml",
+  "mr",
+  "gu",
+  "pa",
+  "or",
+  "as",
+];
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  hi: "Hindi",
+  en: "English",
+  bn: "Bengali",
+  ta: "Tamil",
+  te: "Telugu",
+  kn: "Kannada",
+  ml: "Malayalam",
+  mr: "Marathi",
+  gu: "Gujarati",
+  pa: "Punjabi",
+  or: "Odia",
+  od: "Odia",
+  ori: "Odia",
+  odia: "Odia",
+  odiya: "Odia",
+  as: "Assamese",
+  assamese: "Assamese",
+};
 
 function normalizeLang(input: string) {
-  const v = (input || "").toLowerCase().trim();
-  return v.split("-")[0] || v; // "hi-IN" -> "hi"
+  const raw = (input || "").toLowerCase().trim();
+  const base = raw.split("-")[0] || raw;
+
+  if (base === "od" || base === "ori" || base === "odia" || base === "odiya") {
+    return "or";
+  }
+
+  if (base === "assamese") {
+    return "as";
+  }
+
+  return base;
+}
+
+function titleCase(input: string) {
+  return input
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getLanguageLabel(language: string) {
+  const normalized = normalizeLang(language);
+  return LANGUAGE_LABELS[normalized] || titleCase(language);
+}
+
+function getLanguageRank(language: string) {
+  const normalized = normalizeLang(language);
+  const index = LANGUAGE_ORDER.indexOf(normalized);
+
+  return index === -1 ? 999 : index;
 }
 
 export default function ShakaVideo({ src, className }: Props) {
@@ -22,54 +88,61 @@ export default function ShakaVideo({ src, className }: Props) {
   const [audioLangs, setAudioLangs] = useState<AudioOption[]>([]);
   const [activeAudio, setActiveAudio] = useState<string>("");
 
-  // Prefer Hindi, then English, else first available
-  const preferredOrder = useMemo(() => ["hi", "en", "bn", "ta"], []);
+  const preferredOrder = useMemo(() => LANGUAGE_ORDER, []);
 
   function detectAudioLanguages(player: any): AudioOption[] {
     const variantTracks = player?.getVariantTracks?.() || [];
 
-    // If available, this is the cleanest
     const directLangs: string[] =
       typeof player.getAudioLanguages === "function"
         ? player.getAudioLanguages()
         : [];
 
-    // Fallback: infer from variant tracks
     const inferredLangs: string[] = Array.from(
       new Set(
         variantTracks
-          .map((t: any) => normalizeLang(t.language))
+          .map((track: any) => normalizeLang(track.language))
           .filter(Boolean)
       )
     );
 
     const base = directLangs.length ? directLangs : inferredLangs;
 
-    // Map + de-dupe
     const mapped = base
-      .map((l) => normalizeLang(l))
+      .map((language) => normalizeLang(language))
       .filter(Boolean)
-      .map((l) => ({ language: l, label: l.toUpperCase() }));
+      .map((language) => ({
+        language,
+        label: getLanguageLabel(language),
+      }));
 
-    return Array.from(new Map(mapped.map((x) => [x.language, x])).values());
+    const deduped = Array.from(
+      new Map(mapped.map((item) => [item.language, item])).values()
+    );
+
+    return deduped.sort((a, b) => {
+      const rankA = getLanguageRank(a.language);
+      const rankB = getLanguageRank(b.language);
+
+      if (rankA !== rankB) return rankA - rankB;
+
+      return a.label.localeCompare(b.label);
+    });
   }
 
   function selectAudio(player: any, language: string): boolean {
     const target = normalizeLang(language);
     const tracks = player?.getVariantTracks?.() || [];
 
-    // Find a variant track matching the desired language.
-    // Shaka will switch to the appropriate audio rendition for that variant.
     const match =
-      tracks.find((t: any) => normalizeLang(t.language) === target) || null;
+      tracks.find((track: any) => normalizeLang(track.language) === target) ||
+      null;
 
     if (match && typeof player.selectVariantTrack === "function") {
-      // clearBuffer=true makes the switch immediate/clean
       player.selectVariantTrack(match, true);
       return true;
     }
 
-    // Fallback for some builds
     if (typeof player.selectAudioLanguage === "function") {
       player.selectAudioLanguage(target);
       return true;
@@ -85,7 +158,9 @@ export default function ShakaVideo({ src, className }: Props) {
       const video = videoRef.current;
       if (!video) return;
 
-      const shakaMod = await import("shaka-player/dist/shaka-player.compiled.js");
+      const shakaMod = await import(
+        "shaka-player/dist/shaka-player.compiled.js"
+      );
       const shaka = shakaMod.default;
 
       if (!shaka?.Player?.isBrowserSupported?.()) {
@@ -94,50 +169,47 @@ export default function ShakaVideo({ src, className }: Props) {
       }
 
       shaka.polyfill.installAll();
+
       const player = new shaka.Player(video);
       playerRef.current = player;
 
-      // Helpful for debugging
-      player.addEventListener("error", (evt: any) => {
-  const d = evt?.detail || evt;
-  console.error("Shaka error (raw):", d);
-  console.error("Shaka error (fields):", {
-    message: d?.message,
-    code: d?.code,
-    severity: d?.severity,
-    category: d?.category,
-    data: d?.data,
-    stack: d?.stack,
-  });
-});
+      player.addEventListener("error", (event: any) => {
+        const detail = event?.detail || event;
+
+        console.error("Shaka error:", {
+          message: detail?.message,
+          code: detail?.code,
+          severity: detail?.severity,
+          category: detail?.category,
+          data: detail?.data,
+          stack: detail?.stack,
+        });
+      });
+
       try {
-  await player.load(src);
-} catch (e: any) {
-  // Shaka often throws non-standard objects
-  console.error("Shaka load failed (raw):", e);
+        await player.load(src);
+      } catch (error: any) {
+        console.error("Shaka load failed:", {
+          message: error?.message,
+          code: error?.code,
+          severity: error?.severity,
+          category: error?.category,
+          data: error?.data,
+          stack: error?.stack,
+        });
 
-  // Try to print common fields
-  console.error("Shaka load failed (details):", {
-    message: e?.message,
-    code: e?.code,
-    severity: e?.severity,
-    category: e?.category,
-    data: e?.data,
-    stack: e?.stack,
-  });
-
-  throw e;
-}
+        throw error;
+      }
 
       if (destroyed) return;
 
       const langs = detectAudioLanguages(player);
       setAudioLangs(langs);
 
-      // Pick default language
-      const available = langs.map((x) => x.language);
+      const available = langs.map((item) => item.language);
+
       const pick =
-        preferredOrder.find((p) => available.includes(p)) ||
+        preferredOrder.find((language) => available.includes(language)) ||
         available[0] ||
         "";
 
@@ -149,10 +221,11 @@ export default function ShakaVideo({ src, className }: Props) {
       setReady(true);
     }
 
-    init().catch((e) => console.error("Shaka init error:", e));
+    init().catch((error) => console.error("Shaka init error:", error));
 
     return () => {
       destroyed = true;
+
       setReady(false);
       setAudioLangs([]);
       setActiveAudio("");
@@ -160,6 +233,7 @@ export default function ShakaVideo({ src, className }: Props) {
       try {
         playerRef.current?.destroy?.();
       } catch {}
+
       playerRef.current = null;
     };
   }, [src, preferredOrder]);
@@ -177,14 +251,14 @@ export default function ShakaVideo({ src, className }: Props) {
       <div className="border border-[#1A1A1A] bg-[#0A0A0A]">
         <video
           ref={videoRef}
-          className="w-full aspect-video bg-black"
+          className="aspect-video w-full bg-black"
           controls
           playsInline
         />
 
         <div className="border-t border-[#1A1A1A] p-4">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs uppercase tracking-[0.22em] text-[#A0A0A0] mr-2">
+            <p className="mr-2 text-xs uppercase tracking-[0.22em] text-[#A0A0A0]">
               Audio
             </p>
 
@@ -201,30 +275,28 @@ export default function ShakaVideo({ src, className }: Props) {
             )}
 
             {ready && audioLangs.length === 1 && (
-              <span className="text-xs uppercase tracking-[0.2em] text-[#A0A0A0]">
+              <span className="text-xs text-[#A0A0A0]">
                 Single track ({audioLangs[0].label})
               </span>
             )}
 
             {ready &&
               audioLangs.length > 1 &&
-              audioLangs.map((a) => (
+              audioLangs.map((audio) => (
                 <button
-                  key={a.language}
-                  onClick={() => onPickAudio(a.language)}
+                  key={audio.language}
+                  onClick={() => onPickAudio(audio.language)}
                   className={[
-                    "border px-3 py-2 text-xs uppercase tracking-[0.18em]",
-                    activeAudio === a.language
+                    "border px-3 py-2 text-xs tracking-[0.08em]",
+                    activeAudio === audio.language
                       ? "border-[#7A0E14] text-[#F5F5F5]"
                       : "border-[#1A1A1A] text-[#A0A0A0] hover:border-[#2A2A2A] hover:text-[#F5F5F5]",
                   ].join(" ")}
                 >
-                  {a.label}
+                  {audio.label}
                 </button>
               ))}
           </div>
-
-          
         </div>
       </div>
     </div>
