@@ -38,8 +38,14 @@ const LANGUAGE_OPTIONS = [
   { code: "as", name: "Assamese" },
 ];
 
+const LANGUAGE_OPTION_CODES = LANGUAGE_OPTIONS.map((language) => language.code);
+
 function cleanLangCode(value: string) {
   return value.toLowerCase().trim().replace(/\s+/g, "-");
+}
+
+function isPresetLanguage(value: string) {
+  return LANGUAGE_OPTION_CODES.includes(cleanLangCode(value));
 }
 
 export default function EditProjectPage() {
@@ -56,8 +62,8 @@ export default function EditProjectPage() {
     () => ((CATEGORIES_BY_SERVICE as any)[serviceSlug] ?? []) as string[],
     [serviceSlug]
   );
-  const [categorySlug, setCategorySlug] = useState("ott-dubbing");
 
+  const [categorySlug, setCategorySlug] = useState("ott-dubbing");
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [status, setStatus] = useState<ProjectStatus>("draft");
@@ -65,21 +71,21 @@ export default function EditProjectPage() {
 
   const [year, setYear] = useState<string>("");
   const [meta, setMeta] = useState("");
-  const [languages, setLanguages] = useState(""); // comma-separated
+  const [languages, setLanguages] = useState("");
   const [hlsPath, setHlsPath] = useState("");
-  const [building, setBuilding] = useState(false);
 
-  // Source upload state
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [audioRows, setAudioRows] = useState<AudioRow[]>([
     { id: crypto.randomUUID(), lang: "hi", file: null, progress: 0 },
   ]);
+
   const [videoProgress, setVideoProgress] = useState(0);
   const [uploadingSources, setUploadingSources] = useState(false);
+
+  const [building, setBuilding] = useState(false);
   const [buildStatus, setBuildStatus] = useState<string>("idle");
   const [buildError, setBuildError] = useState<string>("");
 
-  // Keep category valid when service changes
   useEffect(() => {
     if (!categories.includes(categorySlug)) {
       setCategorySlug(categories[0] ?? "");
@@ -87,7 +93,6 @@ export default function EditProjectPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceSlug, categories]);
 
-  // Load project
   useEffect(() => {
     const run = async () => {
       setLoading(true);
@@ -116,6 +121,7 @@ export default function EditProjectPage() {
         setMeta(data.meta ?? "");
         setLanguages(Array.isArray(data.languages) ? data.languages.join(",") : "");
         setHlsPath(data.hlsPath ?? "");
+
         setBuildStatus((data as any).buildStatus ?? "idle");
         setBuildError((data as any).buildError ?? "");
       } catch (e: any) {
@@ -127,25 +133,26 @@ export default function EditProjectPage() {
 
     run();
   }, [id]);
-useEffect(() => {
-  if (buildStatus !== "building") return;
 
-  const interval = setInterval(async () => {
-    const snap = await getDoc(doc(db, "projects", id));
-    if (snap.exists()) {
-      const data: any = snap.data();
-      setBuildStatus(data.buildStatus ?? "idle");
-      setBuildError(data.buildError ?? "");
-    }
-  }, 3000);
+  useEffect(() => {
+    if (buildStatus !== "building") return;
 
-  return () => clearInterval(interval);
-}, [buildStatus, id]);
+    const interval = setInterval(async () => {
+      const snap = await getDoc(doc(db, "projects", id));
 
-  // ---------- CMS actions ----------
+      if (snap.exists()) {
+        const data: any = snap.data();
+        setBuildStatus(data.buildStatus ?? "idle");
+        setBuildError(data.buildError ?? "");
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [buildStatus, id]);
 
   const onSave = async () => {
     if (saving) return;
+
     setSaving(true);
     setError(null);
 
@@ -170,8 +177,9 @@ useEffect(() => {
 
       const langs = languages
         .split(",")
-        .map((s) => s.trim())
+        .map((s) => cleanLangCode(s))
         .filter(Boolean);
+
       if (langs.length) payload.languages = langs;
 
       const hp = hlsPath.trim();
@@ -186,13 +194,16 @@ useEffect(() => {
   };
 
   const onArchive = async () => {
-    if (!confirm("Archive this project? It will disappear from the website list.")) return;
+    if (!confirm("Archive this project? It will disappear from the website list.")) {
+      return;
+    }
 
     try {
       await updateDoc(doc(db, "projects", id), {
         status: "archived",
         updatedAt: serverTimestamp(),
       });
+
       router.push("/admin/projects");
     } catch (e: any) {
       setError(e?.message ?? "Archive failed.");
@@ -207,19 +218,17 @@ useEffect(() => {
     if (!newSlug) return;
 
     try {
-      // 1) Create new project with SAME service/category/order
       await addDoc(collection(db, "projects"), {
         title: newTitle.trim(),
         slug: newSlug.trim(),
         serviceSlug,
         categorySlug,
-        status: "draft", // publish later after build
+        status: "draft",
         order: Number(order),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
 
-      // 2) Archive old
       await updateDoc(doc(db, "projects", id), {
         status: "archived",
         updatedAt: serverTimestamp(),
@@ -230,8 +239,6 @@ useEffect(() => {
       setError(e?.message ?? "Replace failed.");
     }
   };
-
-  // ---------- Source upload helpers ----------
 
   const addAudioRow = () => {
     setAudioRows((prev) => [
@@ -244,13 +251,13 @@ useEffect(() => {
     setAudioRows((prev) => prev.filter((r) => r.id !== rowId));
   };
 
-const setAudioLang = (rowId: string, lang: string) => {
-  setAudioRows((prev) =>
-    prev.map((r) =>
-      r.id === rowId ? { ...r, lang: cleanLangCode(lang) } : r
-    )
-  );
-};
+  const setAudioLang = (rowId: string, lang: string) => {
+    setAudioRows((prev) =>
+      prev.map((r) =>
+        r.id === rowId ? { ...r, lang: cleanLangCode(lang) } : r
+      )
+    );
+  };
 
   const setAudioFile = (rowId: string, file: File | null) => {
     setAudioRows((prev) =>
@@ -260,9 +267,11 @@ const setAudioLang = (rowId: string, lang: string) => {
 
   const onUploadSources = async () => {
     if (uploadingSources) return;
+
     setError(null);
 
     const cleanSlug = slug.trim();
+
     if (!cleanSlug) {
       setError("Slug is required before uploading sources.");
       return;
@@ -274,14 +283,21 @@ const setAudioLang = (rowId: string, lang: string) => {
     }
 
     const chosen = audioRows.filter((r) => r.file);
+
     if (chosen.length === 0) {
       setError("Please add at least 1 audio file.");
       return;
     }
 
-    // no duplicate languages
-    const langs = chosen.map((r) => r.lang.trim()).filter(Boolean);
-    const dup = langs.find((l, i) => langs.indexOf(l) !== i);
+    const langs = chosen.map((r) => cleanLangCode(r.lang));
+
+    const missingLang = langs.find((lang) => !lang);
+    if (missingLang === "") {
+      setError("Every audio file must have a language code.");
+      return;
+    }
+
+    const dup = langs.find((lang, index) => langs.indexOf(lang) !== index);
     if (dup) {
       setError(`Duplicate language selected: ${dup}. Each audio must have a unique language.`);
       return;
@@ -291,19 +307,18 @@ const setAudioLang = (rowId: string, lang: string) => {
     setVideoProgress(0);
 
     try {
-      // 1) upload video
       const videoExt = videoFile.name.split(".").pop() || "mp4";
       const videoPath = `sources/${cleanSlug}/video.${videoExt}`;
 
       await uploadFileToPath(videoPath, videoFile, setVideoProgress);
 
-      // 2) upload audio files
       const audioMap: Record<string, string> = {};
 
       for (const row of chosen) {
         const f = row.file!;
+        const lang = cleanLangCode(row.lang);
         const ext = f.name.split(".").pop() || "wav";
-        const audioPath = `sources/${cleanSlug}/audio/${row.lang}.${ext}`;
+        const audioPath = `sources/${cleanSlug}/audio/${lang}.${ext}`;
 
         await uploadFileToPath(audioPath, f, (pct) => {
           setAudioRows((prev) =>
@@ -311,10 +326,9 @@ const setAudioLang = (rowId: string, lang: string) => {
           );
         });
 
-        audioMap[row.lang] = audioPath;
+        audioMap[lang] = audioPath;
       }
 
-      // 3) store paths on the project doc
       await updateDoc(doc(db, "projects", id), {
         sourceVideoPath: videoPath,
         sourceAudioPaths: audioMap,
@@ -322,7 +336,6 @@ const setAudioLang = (rowId: string, lang: string) => {
         updatedAt: serverTimestamp(),
       });
 
-      // Done
       setVideoProgress(100);
     } catch (e: any) {
       setError(e?.message ?? "Upload sources failed.");
@@ -331,29 +344,31 @@ const setAudioLang = (rowId: string, lang: string) => {
     }
   };
 
-const onBuildHls = async () => {
-  if (building) return;
-  setBuilding(true);
-  setError(null);
+  const onBuildHls = async () => {
+    if (building) return;
 
-  try {
-    const res = await fetch("/api/admin/build-hls", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ projectId: id }),
-    });
+    setBuilding(true);
+    setError(null);
 
-    const data = await res.json();
-    if (!res.ok || !data.ok) throw new Error(data.error || "Build failed");
+    try {
+      const res = await fetch("/api/admin/build-hls", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ projectId: id }),
+      });
 
-    router.push("/admin/projects");
-  } catch (e: any) {
-    setError(e?.message ?? "Build failed");
-    setBuilding(false);
-  }
-};
+      const data = await res.json();
 
-  // ---------- Render ----------
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Build failed");
+      }
+
+      router.push("/admin/projects");
+    } catch (e: any) {
+      setError(e?.message ?? "Build failed");
+      setBuilding(false);
+    }
+  };
 
   if (loading) {
     return <main className="p-10 text-white">Loading…</main>;
@@ -361,15 +376,16 @@ const onBuildHls = async () => {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Edit Project</h1>
-          <p className="mt-1 text-white/70 text-sm">
+
+          <p className="mt-1 text-sm text-white/70">
             Update metadata, HLS path, status, and ordering.
           </p>
         </div>
 
-        <div className="flex gap-2 flex-wrap justify-end">
+        <div className="flex flex-wrap justify-end gap-2">
           <button
             type="button"
             onClick={() => router.push("/admin/projects")}
@@ -383,27 +399,30 @@ const onBuildHls = async () => {
             onClick={onReplace}
             className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm hover:bg-white/15"
           >
-            Replace (same position)
+            Replace
           </button>
 
           <button
             type="button"
             onClick={onArchive}
-            className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm hover:bg-red-500/15 text-red-200"
+            className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200 hover:bg-red-500/15"
           >
             Archive
           </button>
         </div>
       </div>
+
       <div className="mt-3 flex items-center gap-2">
-  <span className="text-xs text-white/60">Build:</span>
-  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs">
-    {buildStatus}
-  </span>
-  {buildStatus === "error" && buildError ? (
-    <span className="text-xs text-red-200">{buildError}</span>
-  ) : null}
-</div>
+        <span className="text-xs text-white/60">Build:</span>
+
+        <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs">
+          {buildStatus}
+        </span>
+
+        {buildStatus === "error" && buildError ? (
+          <span className="text-xs text-red-200">{buildError}</span>
+        ) : null}
+      </div>
 
       {error && (
         <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
@@ -411,9 +430,10 @@ const onBuildHls = async () => {
         </div>
       )}
 
-      <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 grid gap-4">
+      <div className="mt-8 grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-6">
         <div className="grid gap-2">
           <label className="text-xs text-white/60">Service</label>
+
           <select
             value={serviceSlug}
             onChange={(e) => setServiceSlug(e.target.value)}
@@ -429,6 +449,7 @@ const onBuildHls = async () => {
 
         <div className="grid gap-2">
           <label className="text-xs text-white/60">Category</label>
+
           <select
             value={categorySlug}
             onChange={(e) => setCategorySlug(e.target.value)}
@@ -444,6 +465,7 @@ const onBuildHls = async () => {
 
         <div className="grid gap-2">
           <label className="text-xs text-white/60">Title</label>
+
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -453,11 +475,13 @@ const onBuildHls = async () => {
 
         <div className="grid gap-2">
           <label className="text-xs text-white/60">Slug</label>
+
           <input
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             className="rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm"
           />
+
           <div className="text-xs text-white/50">
             Used for storage folder: projects/&lt;slug&gt;/...
           </div>
@@ -465,6 +489,7 @@ const onBuildHls = async () => {
 
         <div className="grid gap-2">
           <label className="text-xs text-white/60">Status</label>
+
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as ProjectStatus)}
@@ -478,6 +503,7 @@ const onBuildHls = async () => {
 
         <div className="grid gap-2">
           <label className="text-xs text-white/60">Order (lower shows first)</label>
+
           <input
             value={order}
             onChange={(e) => setOrder(Number(e.target.value))}
@@ -488,6 +514,7 @@ const onBuildHls = async () => {
 
         <div className="grid gap-2">
           <label className="text-xs text-white/60">Year (optional)</label>
+
           <input
             value={year}
             onChange={(e) => setYear(e.target.value)}
@@ -497,6 +524,7 @@ const onBuildHls = async () => {
 
         <div className="grid gap-2">
           <label className="text-xs text-white/60">Meta (optional)</label>
+
           <input
             value={meta}
             onChange={(e) => setMeta(e.target.value)}
@@ -506,50 +534,62 @@ const onBuildHls = async () => {
 
         <div className="grid gap-2">
           <label className="text-xs text-white/60">Languages (comma-separated)</label>
+
           <input
             value={languages}
             onChange={(e) => setLanguages(e.target.value)}
-            placeholder="hi,bn,ta"
+            placeholder="hi,en,bn,ta"
             className="rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm"
           />
         </div>
 
         <div className="grid gap-2">
           <label className="text-xs text-white/60">HLS Path (Storage path)</label>
+
           <input
             value={hlsPath}
             onChange={(e) => setHlsPath(e.target.value)}
             placeholder="projects/micro-drama-1/master.m3u8"
             className="rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm"
           />
+
           <div className="text-xs text-white/50">
-            Example: <span className="text-white/70">projects/&lt;slug&gt;/master.m3u8</span>
+            Example:{" "}
+            <span className="text-white/70">
+              projects/&lt;slug&gt;/master.m3u8
+            </span>
           </div>
         </div>
 
-        {/* Upload Sources */}
         <div className="mt-2 rounded-2xl border border-white/10 bg-black/20 p-4">
           <div className="text-sm font-semibold">Upload Sources</div>
+
           <div className="mt-1 text-xs text-white/60">
-            Upload video-only + per-language audio. HLS will be built automatically in the next step.
+            Upload video-only + per-language audio. HLS will be built in the
+            next step.
           </div>
 
           <div className="mt-4 grid gap-2">
             <label className="text-xs text-white/60">Video-only file</label>
+
             <input
               type="file"
               accept="video/*"
               onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
               className="text-sm text-white/80"
             />
+
             {videoProgress > 0 && (
-              <div className="text-xs text-white/60">Video upload: {videoProgress}%</div>
+              <div className="text-xs text-white/60">
+                Video upload: {videoProgress}%
+              </div>
             )}
           </div>
 
           <div className="mt-4">
             <div className="flex items-center justify-between">
               <div className="text-xs text-white/60">Audio files</div>
+
               <button
                 type="button"
                 onClick={addAudioRow}
@@ -560,61 +600,92 @@ const onBuildHls = async () => {
             </div>
 
             <div className="mt-3 grid gap-3">
-              {audioRows.map((r) => (
-                <div key={r.id} className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <div className="grid gap-2 md:grid-cols-3 md:items-center">
-                    <div>
-                      <div className="text-xs text-white/60 mb-1">Language</div>
-                      <input
-			list={`language-options-${r.id}`}
-  			value={r.lang}
-  			onChange={(e) => setAudioLang(r.id, e.target.value)}
-  			placeholder="hi"
-  			className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm"
-		      />
+              {audioRows.map((r) => {
+                const isPreset = isPresetLanguage(r.lang);
 
-		      <datalist id={`language-options-${r.id}`}>
-  			{LANGUAGE_OPTIONS.map((language) => (
-    			  <option
-      			    key={language.code}
-      			    value={language.code}
-      			    label={language.name}
-    			  />
-  			))}
-		      </datalist>
+                return (
+                  <div
+                    key={r.id}
+                    className="rounded-xl border border-white/10 bg-white/5 p-3"
+                  >
+                    <div className="grid gap-3 md:grid-cols-3 md:items-start">
+                      <div>
+                        <div className="mb-1 text-xs text-white/60">
+                          Language
+                        </div>
 
-		      <div className="mt-1 text-[11px] text-white/45">
-  			Use language code. Example: hi, en, bn, ta, te, kn, ml, mr, gu, pa, or, as.
-  			For custom languages, type your own code.
-		      </div>
-                    </div>
+                        <select
+                          value={isPreset ? cleanLangCode(r.lang) : "__custom__"}
+                          onChange={(e) => {
+                            const value = e.target.value;
 
-                    <div className="md:col-span-2">
-                      <div className="text-xs text-white/60 mb-1">Audio file</div>
-                      <div className="flex gap-2 items-center">
-                        <input
-                          type="file"
-                          accept="audio/*"
-                          onChange={(e) => setAudioFile(r.id, e.target.files?.[0] ?? null)}
-                          className="flex-1 text-sm text-white/80"
-                        />
+                            if (value === "__custom__") {
+                              setAudioLang(r.id, "");
+                              return;
+                            }
 
-                        <button
-                          type="button"
-                          onClick={() => removeAudioRow(r.id)}
-                          className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-xs hover:bg-white/15"
+                            setAudioLang(r.id, value);
+                          }}
+                          className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm"
                         >
-                          Remove
-                        </button>
+                          {LANGUAGE_OPTIONS.map((language) => (
+                            <option key={language.code} value={language.code}>
+                              {language.name}
+                            </option>
+                          ))}
+
+                          <option value="__custom__">Custom language</option>
+                        </select>
+
+                        {!isPreset && (
+                          <input
+                            value={r.lang}
+                            onChange={(e) => setAudioLang(r.id, e.target.value)}
+                            placeholder="Custom code, example: ur, ne, bhojpuri"
+                            className="mt-2 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm"
+                          />
+                        )}
+
+                        <div className="mt-1 text-[11px] text-white/45">
+                          Choose a preset language, or select custom and type
+                          your own code.
+                        </div>
                       </div>
 
-                      {r.progress > 0 && (
-                        <div className="text-xs text-white/60 mt-1">Audio upload: {r.progress}%</div>
-                      )}
+                      <div className="md:col-span-2">
+                        <div className="mb-1 text-xs text-white/60">
+                          Audio file
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            accept="audio/*"
+                            onChange={(e) =>
+                              setAudioFile(r.id, e.target.files?.[0] ?? null)
+                            }
+                            className="flex-1 text-sm text-white/80"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => removeAudioRow(r.id)}
+                            className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-xs hover:bg-white/15"
+                          >
+                            Remove
+                          </button>
+                        </div>
+
+                        {r.progress > 0 && (
+                          <div className="mt-1 text-xs text-white/60">
+                            Audio upload: {r.progress}%
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <button
@@ -627,14 +698,15 @@ const onBuildHls = async () => {
             </button>
           </div>
         </div>
-<button
-  type="button"
-  onClick={onBuildHls}
-  disabled={building}
-  className="mt-2 rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm hover:bg-white/15 disabled:opacity-50"
->
-  {building ? "Building HLS…" : "Build HLS"}
-</button>
+
+        <button
+          type="button"
+          onClick={onBuildHls}
+          disabled={building}
+          className="mt-2 rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm hover:bg-white/15 disabled:opacity-50"
+        >
+          {building ? "Building HLS…" : "Build HLS"}
+        </button>
 
         <button
           type="button"
