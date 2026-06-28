@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 type ProjectPoster = {
   title: string;
   image: string;
@@ -17,6 +15,10 @@ export default function ProjectPosterGrid({
   description?: string;
   items: ProjectPoster[];
 }) {
+  const visibleItems = items.filter((item) => item.image);
+
+  if (visibleItems.length === 0) return null;
+
   return (
     <section className="mt-14">
       <div className="mb-8">
@@ -34,18 +36,16 @@ export default function ProjectPosterGrid({
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((project) => (
+        {visibleItems.map((project) => (
           <article
             key={project.title}
             className="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]"
           >
             <div className="relative aspect-[2/3] overflow-hidden bg-black">
-              <Image
+              <img
                 src={project.image}
                 alt={project.title}
-                fill
-                sizes="(max-width: 768px) 100vw, 33vw"
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
             </div>
 
@@ -54,20 +54,24 @@ export default function ProjectPosterGrid({
                 {project.title}
               </h3>
 
-              <p className="mt-3 text-[11px] uppercase tracking-[0.2em] text-white/35">
-                Scope
-              </p>
+              {project.services.length > 0 && (
+                <>
+                  <p className="mt-3 text-[11px] uppercase tracking-[0.2em] text-white/35">
+                    Scope
+                  </p>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {project.services.map((service) => (
-                  <span
-                    key={service}
-                    className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] leading-relaxed text-white/65"
-                  >
-                    {service}
-                  </span>
-                ))}
-              </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {project.services.map((service) => (
+                      <span
+                        key={service}
+                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] leading-relaxed text-white/65"
+                      >
+                        {service}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </article>
         ))}

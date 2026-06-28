@@ -11,52 +11,6 @@ import { db } from "@/lib/firebase.client";
 const DUBBING_CATEGORY_SLUG = "ott-dubbing";
 const PROJECTS_PER_PAGE = 5;
 
-const dubbingMoviePosters = [
-  {
-    title: "Dasara",
-    image: "/posters/dubbing/Dasara.jpg",
-    services: [
-      "Turnkey Hindi Dubbing / Localization",
-      "Voice Casting",
-      "ADR / Studio",
-      "Mix",
-    ],
-  },
-  {
-    title: "JSK",
-    image: "/posters/dubbing/JSK.jpg",
-    services: ["ADR / Studio", "Technical Support", "Localization Workflow"],
-  },
-  {
-    title: "Paani",
-    image: "/posters/dubbing/Paani_Marathi.jpg",
-    services: ["Dubbing / Localization", "Mix", "Sound Design", "M&E"],
-  },
-];
-
-const dubbingSeriesPosters = [
-  {
-    title: "Abar Proloy",
-    image: "/posters/dubbing/Abar_Proloy.jpg",
-    services: ["Turnkey Hindi Dubbing", "Mix"],
-  },
-  {
-    title: "Dear Didimoni",
-    image: "/posters/dubbing/Dear_Didimoni.jpg",
-    services: ["Turnkey Hindi Dubbing", "Mix"],
-  },
-  {
-    title: "Koose Munisamy Veerappan",
-    image: "/posters/dubbing/Koose_Munisamy_Veerappan.jpg",
-    services: ["Turnkey Hindi Dubbing", "Mix"],
-  },
-  {
-    title: "She And Her Perfect Husband",
-    image: "/posters/dubbing/She_And_Her_Perfect_Husband.jpg",
-    services: ["Turnkey Hindi Dubbing", "Mix"],
-  },
-];
-
 type ProjectRow = {
   id: string;
   title?: string;
@@ -66,6 +20,18 @@ type ProjectRow = {
   status?: "draft" | "published" | string;
   order?: number;
   hlsPath?: string;
+};
+
+type PosterCreditRow = {
+  id: string;
+  title?: string;
+  categorySlug?: string;
+  group?: "movies" | "series" | string;
+  imageUrl?: string;
+  imagePath?: string;
+  services?: string[];
+  order?: number;
+  status?: "draft" | "published" | "archived" | string;
 };
 
 function hlsPathToPlayableUrl(bucket: string, path: string) {
@@ -80,6 +46,27 @@ function getCategoryTitle(categorySlug: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function getPosterImage(item: PosterCreditRow) {
+  if (item.imageUrl) return item.imageUrl;
+
+  if (
+    item.imagePath &&
+    (item.imagePath.startsWith("/") || item.imagePath.startsWith("http"))
+  ) {
+    return item.imagePath;
+  }
+
+  return "";
+}
+
+function posterCreditToGridItem(item: PosterCreditRow) {
+  return {
+    title: item.title ?? "Untitled",
+    image: getPosterImage(item),
+    services: Array.isArray(item.services) ? item.services : [],
+  };
+}
+
 export default function CategoryPage({
   params,
 }: {
@@ -88,6 +75,9 @@ export default function CategoryPage({
   const { category: categorySlug } = React.use(params);
 
   const [projects, setProjects] = React.useState<ProjectRow[]>([]);
+  const [posterCredits, setPosterCredits] = React.useState<PosterCreditRow[]>(
+    []
+  );
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState<string | null>(null);
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -97,20 +87,32 @@ export default function CategoryPage({
       setLoading(true);
       setErr(null);
 
-      const q = query(
+      const projectQuery = query(
         collection(db, "projects"),
         where("categorySlug", "==", categorySlug),
         where("status", "in", ["published", "draft"]),
         orderBy("order", "asc")
       );
 
-      const snap = await getDocs(q);
-      const list = snap.docs.map((d) => ({
+      const [projectSnap, posterSnap] = await Promise.all([
+        getDocs(projectQuery),
+        getDocs(collection(db, "posterCredits")),
+      ]);
+
+      const projectList = projectSnap.docs.map((d) => ({
         id: d.id,
         ...(d.data() as any),
       })) as ProjectRow[];
 
-      setProjects(list);
+      const posterList = posterSnap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as any),
+      })) as PosterCreditRow[];
+
+      posterList.sort((a, b) => (a.order ?? 1000) - (b.order ?? 1000));
+
+      setProjects(projectList);
+      setPosterCredits(posterList);
       setLoading(false);
     };
 
@@ -125,7 +127,24 @@ export default function CategoryPage({
   }, [categorySlug]);
 
   const bucket = "stonemediawebsite-hls-public-849564114573";
-  const showDubbingPosters = categorySlug === DUBBING_CATEGORY_SLUG;
+
+  const visiblePosterCredits = posterCredits.filter(
+    (item) =>
+      item.categorySlug === categorySlug &&
+      item.status === "published" &&
+      item.title
+  );
+
+  const moviePosterItems = visiblePosterCredits
+    .filter((item) => item.group === "movies")
+    .map(posterCreditToGridItem);
+
+  const seriesPosterItems = visiblePosterCredits
+    .filter((item) => item.group === "series")
+    .map(posterCreditToGridItem);
+
+  const hasPosterGrid =
+    moviePosterItems.length > 0 || seriesPosterItems.length > 0;
 
   const visibleProjects = projects.filter(
     (project) => project.slug !== "showreel"
@@ -161,23 +180,33 @@ export default function CategoryPage({
               {getCategoryTitle(categorySlug)}
             </h1>
 
-            {showDubbingPosters && (
+            {hasPosterGrid && (
               <>
-                <ProjectPosterGrid
-                  eyebrow="Selected Dubbing Projects"
-                  title="Movies"
-                  description="A selection of film projects where Stone Media has contributed to dubbing, localization, and language-version workflows. Campaign and advertising films are showcased separately."
-                  items={dubbingMoviePosters}
-                />
+                {moviePosterItems.length > 0 && (
+                  <ProjectPosterGrid
+                    eyebrow={
+                      categorySlug === DUBBING_CATEGORY_SLUG
+                        ? "Selected Dubbing Projects"
+                        : "Selected Projects"
+                    }
+                    title="Movies"
+                    description="A selection of film projects where Stone Media has contributed to dubbing, localization, and language-version workflows."
+                    items={moviePosterItems}
+                  />
+                )}
 
-                <div className="my-16 h-px w-full bg-white/10" />
+                {moviePosterItems.length > 0 && seriesPosterItems.length > 0 && (
+                  <div className="my-16 h-px w-full bg-white/10" />
+                )}
 
-                <ProjectPosterGrid
-                  eyebrow="Selected Series Projects"
-                  title="Series"
-                  description="Selected episodic and series projects where Stone Media has contributed to dubbing, localization, and language-version workflows."
-                  items={dubbingSeriesPosters}
-                />
+                {seriesPosterItems.length > 0 && (
+                  <ProjectPosterGrid
+                    eyebrow="Selected Series Projects"
+                    title="Series"
+                    description="Selected episodic and series projects where Stone Media has contributed to dubbing, localization, and language-version workflows."
+                    items={seriesPosterItems}
+                  />
+                )}
               </>
             )}
 
@@ -197,7 +226,7 @@ export default function CategoryPage({
               {!loading &&
                 !err &&
                 visibleProjects.length === 0 &&
-                !showDubbingPosters && (
+                !hasPosterGrid && (
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-white/70">
                     No projects yet in this category.
                   </div>
