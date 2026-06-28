@@ -9,6 +9,7 @@ import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase.client";
 
 const DUBBING_CATEGORY_SLUG = "ott-dubbing";
+const PROJECTS_PER_PAGE = 5;
 
 const dubbingMoviePosters = [
   {
@@ -89,7 +90,7 @@ export default function CategoryPage({
   const [projects, setProjects] = React.useState<ProjectRow[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState<string | null>(null);
-  const [activePlayerId, setActivePlayerId] = React.useState<string | null>(null);
+  const [currentPage, setCurrentPage] = React.useState(1);
 
   React.useEffect(() => {
     const load = async () => {
@@ -119,11 +120,27 @@ export default function CategoryPage({
     });
   }, [categorySlug]);
 
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [categorySlug]);
+
   const bucket = "stonemediawebsite-hls-public-849564114573";
   const showDubbingPosters = categorySlug === DUBBING_CATEGORY_SLUG;
 
   const visibleProjects = projects.filter(
     (project) => project.slug !== "showreel"
+  );
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(visibleProjects.length / PROJECTS_PER_PAGE)
+  );
+
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedProjects = visibleProjects.slice(
+    (safeCurrentPage - 1) * PROJECTS_PER_PAGE,
+    safeCurrentPage * PROJECTS_PER_PAGE
   );
 
   return (
@@ -188,7 +205,7 @@ export default function CategoryPage({
 
               {!loading &&
                 !err &&
-                visibleProjects.map((project) => {
+                paginatedProjects.map((project) => {
                   const title = project.title ?? project.slug ?? "Untitled";
                   const hlsUrl = project.hlsPath
                     ? hlsPathToPlayableUrl(bucket, project.hlsPath)
@@ -218,36 +235,72 @@ export default function CategoryPage({
                         </div>
                       </div>
 
-                     <div className="mt-5">
-  {hlsUrl ? (
-    activePlayerId === project.id ? (
-      <div className="min-h-[260px]">
-        <ShakaVideo src={hlsUrl} />
-      </div>
-    ) : (
-      <button
-        type="button"
-        onClick={() => setActivePlayerId(project.id)}
-        className="w-full rounded-xl border border-white/10 bg-black/30 p-6 text-left transition hover:bg-white/10"
-      >
-        <div className="text-sm font-medium text-white">
-          Load Player
-        </div>
-
-        <div className="mt-1 text-xs text-white/55">
-          Tap to load video and language tracks.
-        </div>
-      </button>
-    )
-  ) : (
-    <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/70">
-      HLS not built yet.
-    </div>
-  )}
-</div>
+                      <div className="mt-5">
+                        {hlsUrl ? (
+                          <ShakaVideo src={hlsUrl} />
+                        ) : (
+                          <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/70">
+                            HLS not built yet.
+                          </div>
+                        )}
+                      </div>
                     </section>
                   );
                 })}
+
+              {!loading && !err && visibleProjects.length > PROJECTS_PER_PAGE && (
+                <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:flex-row">
+                  <div className="text-sm text-white/55">
+                    Showing page {safeCurrentPage} of {totalPages}
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      disabled={safeCurrentPage === 1}
+                      onClick={() =>
+                        setCurrentPage((page) => Math.max(1, page - 1))
+                      }
+                      className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm text-white/80 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Previous
+                    </button>
+
+                    {Array.from({ length: totalPages }).map((_, index) => {
+                      const page = index + 1;
+
+                      return (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => setCurrentPage(page)}
+                          className={[
+                            "rounded-xl border px-4 py-2 text-sm",
+                            page === safeCurrentPage
+                              ? "border-[#7A0E14] bg-[#7A0E14]/30 text-white"
+                              : "border-white/15 bg-white/10 text-white/70 hover:bg-white/15",
+                          ].join(" ")}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      type="button"
+                      disabled={safeCurrentPage === totalPages}
+                      onClick={() =>
+                        setCurrentPage((page) =>
+                          Math.min(totalPages, page + 1)
+                        )
+                      }
+                      className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm text-white/80 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>
