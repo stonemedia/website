@@ -9,6 +9,7 @@ import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase.client";
 
 const DUBBING_CATEGORY_SLUG = "ott-dubbing";
+const AUDIO_POST_CATEGORY_SLUG = "audio-post";
 const PROJECTS_PER_PAGE = 5;
 
 type ProjectRow = {
@@ -66,6 +67,85 @@ function posterCreditToGridItem(item: PosterCreditRow) {
     services: Array.isArray(item.services) ? item.services : [],
   };
 }
+
+
+function AudioPostFallback() {
+  const capabilities = [
+    {
+      title: "Stereo & Surround Mixing",
+      body: "Balanced, controlled mixes for films, series, campaigns, promos, and digital-first content.",
+    },
+    {
+      title: "Sound Design",
+      body: "Creative sound layers, atmospheres, transitions, impact moments, and scene-focused sonic detailing.",
+    },
+    {
+      title: "Dialogue Cleanup",
+      body: "Noise reduction, dialogue clarity, repair, leveling, and preparation for final mix workflows.",
+    },
+    {
+      title: "Music & Effects / M&E",
+      body: "M&E handling, version support, localization-ready audio preparation, and delivery alignment.",
+    },
+    {
+      title: "Final QC & Delivery",
+      body: "Technical checks, loudness awareness, format readiness, and delivery-focused finishing.",
+    },
+    {
+      title: "Campaign Audio Finishing",
+      body: "Fast, polished audio post support for advertising films, promos, trailers, and branded content.",
+    },
+  ];
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 md:p-8">
+      <p className="text-xs uppercase tracking-[0.28em] text-white/40">
+        Audio Post Production
+      </p>
+
+      <h2 className="mt-4 text-2xl font-light text-white md:text-4xl">
+        Selected audio post samples are being prepared.
+      </h2>
+
+      <p className="mt-5 max-w-3xl text-sm leading-relaxed text-white/60">
+        Meanwhile, Stone Media supports films, series, campaigns, promos, and
+        digital content with end-to-end audio post-production workflows — from
+        dialogue cleanup and sound design to stereo/surround mixing, M&E
+        handling, final QC, and delivery-ready masters.
+      </p>
+
+      <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {capabilities.map((item) => (
+          <article
+            key={item.title}
+            className="rounded-2xl border border-white/10 bg-black/20 p-5"
+          >
+            <h3 className="text-base font-medium text-white">{item.title}</h3>
+
+            <p className="mt-3 text-sm leading-relaxed text-white/55">
+              {item.body}
+            </p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <p className="text-sm leading-relaxed text-white/70">
+          Need audio post support for a film, series, campaign, promo, or
+          digital project?
+        </p>
+
+        <a
+          href="/#contact"
+          className="mt-4 inline-flex rounded-xl border border-white/15 bg-white/10 px-5 py-3 text-sm text-white hover:bg-white/15"
+        >
+          Talk to Stone Media
+        </a>
+      </div>
+    </section>
+  );
+}
+
 
 export default function CategoryPage({
   params,
@@ -224,13 +304,20 @@ export default function CategoryPage({
               )}
 
               {!loading &&
-                !err &&
-                visibleProjects.length === 0 &&
-                !hasPosterGrid && (
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-white/70">
-                    No projects yet in this category.
-                  </div>
-                )}
+  !err &&
+  visibleProjects.length === 0 &&
+  !hasPosterGrid &&
+  categorySlug === AUDIO_POST_CATEGORY_SLUG && <AudioPostFallback />}
+
+{!loading &&
+  !err &&
+  visibleProjects.length === 0 &&
+  !hasPosterGrid &&
+  categorySlug !== AUDIO_POST_CATEGORY_SLUG && (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-white/70">
+      No projects yet in this category.
+    </div>
+  )}
 
               {!loading &&
                 !err &&

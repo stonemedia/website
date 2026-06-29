@@ -63,11 +63,11 @@ const SERVICES: Service[] = [
     ],
     ctas: [
       {
-        label: "View OTT / Movie Dubbing",
+        label: "Explore Film & Series Dubbing",
         href: "/work/category/ott-dubbing",
       },
       {
-        label: "View Ad Campaign Work",
+        label: "Explore Advertising Film Dubbing",
         href: "/work/category/ad-campaigns",
       },
     ],
@@ -88,7 +88,7 @@ const SERVICES: Service[] = [
     ],
     ctas: [
       {
-        label: "View Work",
+        label: "Explore Audio Post Production",
         href: "/work/category/audio-post",
       },
     ],
@@ -131,7 +131,7 @@ const SERVICES: Service[] = [
   ],
   ctas: [
     {
-      label: "View Work",
+      label: "Explore Accessibility Assets",
       href: "/work/category/accessibility",
     },
     {
@@ -394,12 +394,14 @@ export default function Hero() {
                       })}
 
                       <a
-                        href="/#contact"
-                        onClick={() => setOpen(false)}
-                        className="inline-flex items-center justify-center border border-[#F5F5F5]/40 bg-transparent px-5 py-3 text-xs uppercase tracking-[0.25em] text-white/70 transition-colors hover:border-[#7A0E14] hover:bg-[#7A0E14] hover:text-white"
-                      >
-                        Connect
-                      </a>
+  href="/#contact"
+  onClick={() => setOpen(false)}
+  onMouseEnter={() => setHoveredCta("__connect__")}
+  onMouseLeave={() => setHoveredCta(null)}
+  className="inline-flex items-center justify-center border border-[#F5F5F5]/40 bg-transparent px-5 py-3 text-xs uppercase tracking-[0.25em] text-white/70 transition-colors hover:border-[#7A0E14] hover:bg-[#7A0E14] hover:text-white"
+>
+  Connect
+</a>
                     </div>
 
                     <div className="mt-4 text-[11px] uppercase tracking-[0.22em] text-white/40">

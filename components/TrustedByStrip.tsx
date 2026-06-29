@@ -1,14 +1,16 @@
 const DEFAULT_LOGOS = [
-  "Netflix",
-  "Amazon",
-  "Disney+",
+  "Rajshri Entertainment",
   "Sony",
   "Zee",
-  "Star",
-  "JioCinema",
-  "YouTube",
-  "MX Player",
-  "Discovery",
+  "TATA Play",
+  "Hungama",
+  "Briliant Wellness TV",
+  "Sa Re Ga Ma",
+  "Tata Consultancy Services",
+  "GREY",
+  "Dora Digs",
+  "Ele Pictures",
+  "Dashverse",
 ];
 
 export default function TrustedByStrip({ items = DEFAULT_LOGOS }: { items?: string[] }) {
