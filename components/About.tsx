@@ -57,7 +57,7 @@ It’s a framework for how stories travel today — and tomorrow.
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-sm">
               <ShakaVideo src="https://stonemediawebsite-hls-public-849564114573.storage.googleapis.com/projects/showreel/master.m3u8" />
               <p className="mt-4 text-xs uppercase tracking-[0.25em] text-white/40">
-                General Showreel
+                
               </p>
             </div>
 
